@@ -2,6 +2,7 @@
 #define GROWTH_FORECAST_H
 
 #include "Stock.h"
+#include "Config.h"
 #include <vector>
 #include <random>
 #include <cmath>
@@ -10,49 +11,9 @@
 
 using json = nlohmann::json;
 
-/* DCF Forecasting with Reverse DCF and Monte Carlo
-This class implements a bottom-up discounted cash flow (DCF) forecasting model for stock valuation.
-combined with reverse DCF to infer implied growth and Monte Carlo simulation for risk-adjusted variance.
-It projects free cash flows over a horizon, adds a terminal value, and adjusts for probabilities and scale damping.
-
-Bottom-Up Revenue Projection
-R_t = sum_p (MS_p * PR_p * PN_p) * Prob_p
-
-MS_p: Market size for product p (e.g., hardcoded or fetched sector TAM). Explanation: Represents the total addressable market for the company's core offerings.
-PR_p: Pricing per unit (derived from PE ratio * revenue growth). Explanation: Captures the expected price point, adjusted for growth expectations.
-PN_p: Penetration or units sold (market cap as proxy for share). Explanation: Estimates market penetration, factoring in timeline adjustments for launch delays.
-Prob_p: Probability adjustment (e.g., 0.7 for tech launch success). Explanation: Incorporates risk of failure or delay, based on industry averages.
-Cost and Margin Modeling
-C_t = R_t * (COGS% + OPEX% + RD% + SGA% + CAPEX%)
-
-COGS%, OPEX%, etc.: Percentages of revenue, trending toward efficiency (e.g., margins expand 1.5% annually). Explanation: Models operating costs, R&D, selling/general/admin, goods sold, and capital expenditures as revenue fractions.
-DCF Core
-IV = sum_{t=1 to T} FCF_t / (1 + WACC)^t + TV / (1 + WACC)^T
-
-FCF_t = EBIT_t * (1 - τ) (simplified, assuming dep/capex/WC net to zero for growth focus). Explanation: Free cash flow in year t, from EBIT after tax.
-TV = FCF_{T+1} / (WACC - g_terminal) Explanation: Terminal value assuming perpetual growth post-horizon.
-WACC: Weighted average cost of capital (e.g., 0.1). Explanation: Discount rate reflecting equity/debt costs.
-Risk and Sensitivity Adjustments
-IV_adj = sum_scen Prob_scen * IV_scen, with scen variations ~ Normal(0, 0.1)
-
-Prob_scen: Weights for best/base/worst (0.3/0.5/0.2). Explanation: Scenario analysis for upside/downside, damped by scale: g = g_base / log10(market_cap + 1).
-Reverse DCF Implied g
-g = WACC - FCF_{T+1} / [(P - sum FCF_t / (1+WACC)^t) * (1+WACC)^T]
-
-P: Current price (fetched). Explanation: Solves for growth implied by market price.
-Monte Carlo for Variance
-Sample 1000 paths around inputs (e.g., FCF ~ Normal(base, 0.1)), compute g per path, return mean/std.
-
-Interpretation in Lifecycle Context Forecasts high g in disruption (low cap, undamped), moderates in scaling (moats sustain), flattens in maturity (damping dominates). Monte Carlo adds uncertainty for risk penalty in U_s. */
-
 class GrowthForecast {
 private:
-    std::string api_key;
-    double wacc = 0.1;
-    double tax_rate = 0.25;
-    int T = 10;
-    int num_scenarios = 1000;
-    double g_terminal_base = 0.03;
+    const Config& config;
 
     static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp) {
         ((std::string*)userp)->append((char*)contents, size * nmemb);
@@ -63,7 +24,7 @@ private:
         CURL* curl = curl_easy_init();
         std::string readBuffer;
         if (curl) {
-            std::string url = "https://api.polygon.io" + endpoint + "&apiKey=" + api_key;
+            std::string url = "https://api.polygon.io" + endpoint + "&apiKey=" + config.api_key;
             curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
@@ -102,13 +63,13 @@ private:
 
     double dcf_core(const Stock& stock, double revenue, double costs) const {
         double ebit = revenue - costs;
-        double fcf = ebit * (1 - tax_rate);
+        double fcf = ebit * (1 - config.dcf_tax_rate);
         double fcf_sum = 0.0;
-        for (int t = 1; t <= T; ++t) {
-            fcf_sum += fcf / std::pow(1 + wacc, t);
+        for (int t = 1; t <= config.dcf_forecast_horizon; ++t) {
+            fcf_sum += fcf / std::pow(1 + config.dcf_wacc, t);
         }
-        double tv = (fcf * (1 + g_terminal_base)) / (wacc - g_terminal_base);
-        tv /= std::pow(1 + wacc, T);
+        double tv = (fcf * (1 + config.dcf_terminal_growth_rate)) / (config.dcf_wacc - config.dcf_terminal_growth_rate);
+        tv /= std::pow(1 + config.dcf_wacc, config.dcf_forecast_horizon);
         return fcf_sum + tv;
     }
 
@@ -119,47 +80,47 @@ private:
         double best_prob = 0.3;
         double base_prob = 0.5;
         double worst_prob = 0.2;
-        for (int scen = 0; scen < num_scenarios; ++scen) {
+        for (int scen = 0; scen < config.monte_carlo_simulations; ++scen) {
             double adjust = dist(generator);
             double scen_dcf = base_dcf * (1 + adjust);
             sum_adjust += best_prob * (scen_dcf * 1.2) + base_prob * scen_dcf + worst_prob * (scen_dcf * 0.8);
         }
         double damped_g = stock.revenue_growth / std::log10(stock.market_cap + 1);
-        return (sum_adjust / num_scenarios) * damped_g;
+        return (sum_adjust / config.monte_carlo_simulations) * damped_g;
     }
 
     double reverse_dcf_implied_g(const Stock& stock, double price, double base_fcf) const {
         double fcf_sum = 0.0;
-        for (int t = 1; t <= T; ++t) {
+        for (int t = 1; t <= config.dcf_forecast_horizon; ++t) {
             base_fcf *= (1 + stock.revenue_growth);
-            fcf_sum += base_fcf / std::pow(1 + wacc, t);
+            fcf_sum += base_fcf / std::pow(1 + config.dcf_wacc, t);
         }
         double tv = price - fcf_sum;
-        tv *= std::pow(1 + wacc, T);
-        double implied_g = wacc - (base_fcf * (1 + g_terminal_base) / tv);
+        tv *= std::pow(1 + config.dcf_wacc, config.dcf_forecast_horizon);
+        double implied_g = config.dcf_wacc - (base_fcf * (1 + config.dcf_terminal_growth_rate) / tv);
         return implied_g;
     }
 
     std::pair<double, double> monte_carlo_reverse_dcf(const Stock& stock, double price) const {
         double base_fcf = stock.market_cap * stock.fcf_yield;
         std::default_random_engine generator;
-        std::normal_distribution<double> dist(0.0, 0.1);
+        std::normal_distribution<double> dist(0.0, config.monte_carlo_volatility_assumption);
         double sum_g = 0.0;
         double sum_sq = 0.0;
-        for (int scen = 0; scen < num_scenarios; ++scen) {
+        for (int scen = 0; scen < config.monte_carlo_simulations; ++scen) {
             double scen_fcf = base_fcf * (1 + dist(generator));
             double implied_g = reverse_dcf_implied_g(stock, price, scen_fcf);
             sum_g += implied_g;
             sum_sq += implied_g * implied_g;
         }
-        double mean_g = sum_g / num_scenarios;
-        double var_g = (sum_sq / num_scenarios) - (mean_g * mean_g);
-        double std_g = std::sqrt(var_g);
+        double mean_g = sum_g / config.monte_carlo_simulations;
+        double var_g = (sum_sq / config.monte_carlo_simulations) - (mean_g * mean_g);
+        double std_g = std::sqrt(std::abs(var_g));
         return {mean_g, std_g};
     }
 
 public:
-    GrowthForecast(const std::string& key) : api_key(key) {}
+    GrowthForecast(const Config& cfg) : config(cfg) {}
 
     double forecast(const Stock& stock, double current_price) const {
         double revenue = bottom_up_revenue(stock);

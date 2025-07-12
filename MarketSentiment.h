@@ -5,61 +5,18 @@
 #include <cmath>
 #include <random>
 #include <numeric>
-
-/*
-Hamilton's Markov-Switching Autoregression (MSAR) for Market Sentiment Regimes
-=============================================================================
-
-This class implements a multivariate Markov-switching autoregression model to infer hidden regimes 
-(e.g., bull or bear states) from time series like GDP growth, VIX volatility, and index returns. 
-It models data as switching between K regimes, each with its own AR(p) parameters, means, and covariances, 
-using an EM algorithm for fitting and forward algorithm for regime prediction.
-
-### Model Equation
-The observed data y_t (vector of n_vars) in regime s_t follows:
-y_t = mu_{s_t} + sum_{i=1 to p} phi_{s_t,i} (y_{t-i} - mu_{s_t}) + epsilon_t, epsilon_t ~ N(0, Sigma_{s_t})
-
-- s_t: Hidden regime at time t (1 to K, e.g., K=2 for bull/bear).
-  Explanation: Discrete state governing parameter switches, evolving as Markov chain P(s_t | s_{t-1}).
-
-- mu_{s}: Mean vector per regime (K x n_vars).
-  Explanation: Regime-specific average levels (e.g., high GDP in bull).
-
-- phi_{s,i}: AR coefficients per regime/lag (K x p x n_vars).
-  Explanation: Autoregressive terms capturing persistence within regimes.
-
-- Sigma_{s}: Covariance matrix per regime (K x n_vars x n_vars).
-  Explanation: Regime-specific volatility and correlations (e.g., high in bear).
-
-- trans_prob: Transition probabilities P(s_t = j | s_{t-1} = i) (K x K).
-  Explanation: Markov chain matrix, favoring persistence (diagonal >0.8).
-
-### EM Fitting (Expectation-Maximization)
-Iteratively estimate parameters:
-E-step: Compute gamma_t(k) = P(s_t = k | data) via forward-backward (alpha/beta).
-M-step: Update trans_prob, means, covs, ar_coeffs from gamma-weighted data.
-
-- log_likelihood: sum_t sum_k gamma_t(k) * log N(y_t | mean_k, cov_k).
-  Explanation: Measures model fit, converged when delta < tol.
-
-### Regime Prediction
-P(s_T | data) from forward alpha_T(k), the probability of each regime at the last observation.
-
-### Interpretation in Context
-Detects bull (high GDP/low VIX/positive returns) vs. bear regimes, boosting scores in bull for growth bias. 
-Aesthetic in its probabilistic elegance: Hidden states capture market phase shifts, inferred from observable data.
-*/
+#include <limits>
 
 class MarketSentiment {
 private:
-    int K;  // Number of regimes
-    int p;  // AR order
-    int n_vars;  // Number of variables (multivariate)
-    std::vector<std::vector<double>> trans_prob;  // Transition probabilities (K x K)
-    std::vector<double> start_prob;  // Initial state probabilities (K)
-    std::vector<std::vector<double>> means;  // Mean per regime per var (K x n_vars)
-    std::vector<std::vector<std::vector<double>>> covs;  // Covariance per regime (K x n_vars x n_vars)
-    std::vector<std::vector<double>> ar_coeffs;  // AR coefficients per regime (K x p * n_vars)
+    int K;
+    int p;
+    int n_vars;
+    std::vector<std::vector<double>> trans_prob;
+    std::vector<double> start_prob;
+    std::vector<std::vector<double>> means;
+    std::vector<std::vector<std::vector<double>>> covs;
+    std::vector<std::vector<double>> ar_coeffs;
 
     double log_likelihood(const std::vector<std::vector<double>>& data, const std::vector<std::vector<double>>& gamma) const {
         double ll = 0.0;
@@ -73,7 +30,7 @@ private:
 
     double normal_pdf(const std::vector<double>& x, const std::vector<double>& mean, const std::vector<std::vector<double>>& cov) const {
         double det = 1.0;
-        for (size_t i = 0; i < cov.size(); ++i) det *= cov[i][i];  // Simplified for diagonal cov
+        for (size_t i = 0; i < cov.size(); ++i) det *= cov[i][i];
         double exp_term = 0.0;
         for (size_t i = 0; i < x.size(); ++i) exp_term += (x[i] - mean[i]) * (x[i] - mean[i]) / cov[i][i];
         return std::exp(-0.5 * exp_term) / std::sqrt(std::pow(2 * M_PI, x.size()) * det);
@@ -86,7 +43,7 @@ public:
         means.assign(K, std::vector<double>(n_vars, 0.0));
         covs.assign(K, std::vector<std::vector<double>>(n_vars, std::vector<double>(n_vars, 0.0)));
         for (int k = 0; k < K; ++k) for (int i = 0; i < n_vars; ++i) covs[k][i][i] = 1.0;
-        ar_coeffs.assign(K, std::vector<double>(p * n_vars, 0.0);
+        ar_coeffs.assign(K, std::vector<double>(p * n_vars, 0.0));
     }
 
     void fit(const std::vector<std::vector<double>>& data, int max_iter = 50, double tol = 1e-6) {
@@ -172,7 +129,6 @@ public:
         }
     }
 
-public:
     std::vector<double> predict_regime(const std::vector<std::vector<double>>& data) const {
         int T = data.size();
         std::vector<std::vector<double>> alpha(T, std::vector<double>(K, 0.0));
@@ -189,7 +145,7 @@ public:
             scale = std::accumulate(alpha[t].begin(), alpha[t].end(), 0.0);
             for (int k = 0; k < K; ++k) alpha[t][k] /= scale;
         }
-        return alpha.back();  // Probabilities for the last observation
+        return alpha.back();
     }
 };
 
