@@ -1,5 +1,5 @@
-#ifndef PORTFOLIO_ALLOCATOR_H
-#define PORTFOLIO_ALLOCATOR_H
+#ifndef PORTFOLIO_OPTIMISER_H
+#define PORTFOLIO_OPTIMISER_H
 
 #include "Universe.h"
 #include "Config.h"
@@ -9,7 +9,7 @@
 #include <iostream>
 #include <stdexcept>
 
-class PortfolioAllocator {
+class PortfolioOptimiser {
 private:
     const Config& config;
 
@@ -29,7 +29,7 @@ private:
     }
 
 public:
-    PortfolioAllocator(const Config& cfg) : config(cfg) {}
+    PortfolioOptimiser(const Config& cfg) : config(cfg) {}
 
     std::vector<double> allocate(const Universe& universe, const std::vector<double>& prior_weights) const {
         const auto& stocks = universe.get_stocks();

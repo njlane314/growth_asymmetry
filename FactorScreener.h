@@ -1,5 +1,5 @@
-#ifndef UNIVERSE_BUILDER_H
-#define UNIVERSE_BUILDER_H
+#ifndef FACTOR_SCREENER_H
+#define FACTOR_SCREENER_H
 
 #include "Universe.h"
 #include "FundamentalAnalysis.h"
@@ -11,7 +11,7 @@
 #include <algorithm>
 #include <iostream>
 
-class UniverseBuilder {
+class FactorScreener {
 private:
     const Config& config;
     FundamentalsAnalyzer fundamentals_analyzer;
@@ -19,7 +19,7 @@ private:
     GrowthForecast growth_forecast;
 
 public:
-    UniverseBuilder(const Config& cfg)
+    FactorScreener(const Config& cfg)
         : config(cfg),
           fundamentals_analyzer(cfg),
           sentiment_analyser(cfg),

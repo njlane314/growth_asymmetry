@@ -1,5 +1,5 @@
-#ifndef UNIVERSE_CACHE_H
-#define UNIVERSE_CACHE_H
+#ifndef POSITION_BOOK_H
+#define POSITION_BOOK_H
 
 #include <string>
 #include <vector>
@@ -7,7 +7,7 @@
 #include <sstream>
 #include "Stock.h"
 
-class UniverseCache {
+class PositionBook {
 public:
     std::vector<Stock> load_prior(const std::string& filename) const {
         std::vector<Stock> prior;

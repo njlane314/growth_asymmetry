@@ -6,13 +6,13 @@
 #include <vector>
 #include <algorithm>
 
-class Universe {
+class InvestableUniverse {
 private:
     std::vector<Stock> current_stocks;
     UniverseCache cache;
 
 public:
-    Universe() {}
+    InvestableUniverse() {}
 
     const std::vector<Stock>& get_stocks() const {
         return current_stocks;

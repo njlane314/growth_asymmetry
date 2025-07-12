@@ -1,5 +1,5 @@
-#ifndef DATA_HANDLER_H
-#define DATA_HANDLER_H
+#ifndef MARKET_FEED_H
+#define MARKET_FEED_H
 
 #include "Config.h"
 #include "Stock.h"
@@ -16,9 +16,9 @@
 
 using json = nlohmann::json;
 
-class TimeSeriesHandler {
+class MarketFeed {
 public:
-    TimeSeriesHandler(const Config& cfg) : config(cfg) {}
+    MarketFeed(const Config& cfg) : config(cfg) {}
 
     void load_all_data() {
         std::cout << "Loading all historical data..." << std::endl;
