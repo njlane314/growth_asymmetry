@@ -6,6 +6,7 @@
 #include "SentimentAnalyser.h"
 #include "GrowthForecast.h"
 #include "Config.h"
+#include "PolygonFeedProvider.h" 
 #include <string>
 #include <vector>
 #include <algorithm>
@@ -14,6 +15,7 @@
 class FactorScreener {
 private:
     const Config& config;
+    PolygonFeedProvider feed_provider; 
     FundamentalsAnalyser fundamentals_analyser;
     SentimentAnalyser sentiment_analyser;
     GrowthForecast growth_forecast;
@@ -21,8 +23,9 @@ private:
 public:
     FactorScreener(const Config& cfg)
         : config(cfg),
-          fundamentals_analyser(cfg),
-          sentiment_analyser(cfg),
+          feed_provider(cfg),
+          fundamentals_analyser(cfg, feed_provider),
+          sentiment_analyser(cfg, feed_provider),
           growth_forecast(cfg) {}
 
     InvestableUniverse build() {

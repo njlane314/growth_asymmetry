@@ -1,4 +1,3 @@
-# Compiled files
 *.d
 *.slo
 *.lo
@@ -22,8 +21,6 @@
 *.app
 *.dwo
 
-# Build directory
 build/
-
-# Generated data files
 *.csv
+.env

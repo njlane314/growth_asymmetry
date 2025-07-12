@@ -1,7 +1,7 @@
 #ifndef MOCK_MARKET_FEED_PROVIDER_H
 #define MOCK_MARKET_FEED_PROVIDER_H
 
-#include "framework/MarketFeedProvider.h"
+#include "../framework/MarketFeedProvider.h"
 #include <map>
 #include <string>
 

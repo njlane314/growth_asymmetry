@@ -2,7 +2,7 @@
 #define MARKET_FEED_PROVIDER_H
 
 #include <string>
-#include "json.hpp"
+#include <nlohmann/json.hpp>
 
 class MarketFeedProvider {
 public:

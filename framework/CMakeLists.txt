@@ -1,9 +1,7 @@
 add_library(framework INTERFACE)
 
-target_include_directories(framework INTERFACE
-    /usr/local/lib/json/include
-    ${CMAKE_CURRENT_SOURCE_DIR}
-)
+# Link the framework to nlohmann_json::nlohmann_json
+target_link_libraries(framework INTERFACE nlohmann_json::nlohmann_json)
 
 target_sources(framework INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/Config.h

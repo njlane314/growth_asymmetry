@@ -5,45 +5,25 @@
 #include <map>
 #include <stdexcept>
 #include <iostream>
-#include <curl/curl.h>
 #include <nlohmann/json.hpp>
 
 #include "Config.h"
+#include "MarketFeedProvider.h"
 
 using json = nlohmann::json;
 
 class FundamentalsAnalyser {
 private:
     const Config& config;
-
-    static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp) {
-        ((std::string*)userp)->append((char*)contents, size * nmemb);
-        return size * nmemb;
-    }
+    MarketFeedProvider& feed_provider;
 
     json fetch_from_api(const std::string& endpoint) {
-        CURL* curl = curl_easy_init();
-        std::string readBuffer;
-        if (curl) {
-            std::string url = "https://api.polygon.io" + endpoint + "&apiKey=" + config.api_key;
-            curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-            CURLcode res = curl_easy_perform(curl);
-            curl_easy_cleanup(curl);
-            if (res != CURLE_OK) {
-                throw std::runtime_error("CURL request failed: " + std::string(curl_easy_strerror(res)));
-            }
-        }
-        try {
-            return json::parse(readBuffer);
-        } catch (const json::parse_error& e) {
-            throw std::runtime_error("JSON parse error: " + std::string(e.what()));
-        }
+        return feed_provider.fetch(endpoint);
     }
 
 public:
-    FundamentalsAnalyser(const Config& cfg) : config(cfg) {}
+    FundamentalsAnalyser(const Config& cfg, MarketFeedProvider& provider) 
+        : config(cfg), feed_provider(provider) {}
 
     std::map<std::string, double> analyze_fundamentals(const std::string& ticker) {
         std::string endpoint_current = "/vX/reference/financials?ticker=" + ticker + "&filing_date.gte=2024-01-01&limit=1&timeframe=annual";
