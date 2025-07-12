@@ -12,7 +12,8 @@
 #include <stdexcept>
 #include <iostream>
 #include <curl/curl.h>
-#include "json.hpp"
+#include <nlohmann/json.hpp>
+
 #include "Config.h"
 
 using json = nlohmann::json;

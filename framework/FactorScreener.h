@@ -1,8 +1,8 @@
 #ifndef FACTOR_SCREENER_H
 #define FACTOR_SCREENER_H
 
-#include "Universe.h"
-#include "FundamentalAnalysis.h"
+#include "InvestableUniverse.h"
+#include "FundamentalsAnalyser.h"
 #include "SentimentAnalyser.h"
 #include "GrowthForecast.h"
 #include "Config.h"
@@ -14,26 +14,26 @@
 class FactorScreener {
 private:
     const Config& config;
-    FundamentalsAnalyzer fundamentals_analyzer;
+    FundamentalsAnalyser fundamentals_analyser;
     SentimentAnalyser sentiment_analyser;
     GrowthForecast growth_forecast;
 
 public:
     FactorScreener(const Config& cfg)
         : config(cfg),
-          fundamentals_analyzer(cfg),
+          fundamentals_analyser(cfg),
           sentiment_analyser(cfg),
           growth_forecast(cfg) {}
 
-    Universe build() {
-        Universe universe;
+    InvestableUniverse build() {
+        InvestableUniverse universe;
         universe.load_prior(config.prior_universe_path);
         const auto& prior = universe.get_stocks();
         std::vector<Stock> new_stocks;
 
         for (const auto& ticker : config.initial_candidates) {
             std::cout << "Processing: " << ticker << std::endl;
-            auto fund_metrics = fundamentals_analyzer.analyze_fundamentals(ticker);
+            auto fund_metrics = fundamentals_analyser.analyze_fundamentals(ticker);
             if (fund_metrics.empty()) {
                 std::cerr << "Skipping " << ticker << " due to fundamental data issues." << std::endl;
                 continue;

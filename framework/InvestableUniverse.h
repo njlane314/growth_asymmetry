@@ -2,14 +2,14 @@
 #define UNIVERSE_H
 
 #include "Stock.h"
-#include "UniverseCache.h"
+#include "PositionBook.h"
 #include <vector>
 #include <algorithm>
 
 class InvestableUniverse {
 private:
     std::vector<Stock> current_stocks;
-    UniverseCache cache;
+    PositionBook cache;
 
 public:
     InvestableUniverse() {}

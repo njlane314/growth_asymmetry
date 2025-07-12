@@ -8,6 +8,7 @@ struct Config {
 
     // --- API & General Settings ---
     std::string api_key = "YOUR_API_KEY_HERE"; 
+    std::vector<std::string> initial_candidates;
 
     // --- File Paths ---
     std::string prior_universe_path = "prior_universe.csv";
