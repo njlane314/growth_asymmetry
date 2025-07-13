@@ -8,5 +8,5 @@ r() {
     echo "Error: .env file not found. Please create one from .env.example." >&2
     return 1
   fi
-  docker run --rm -it --env-file ./.env -v "$(pwd)":/app growth-asymmetry-builder /app/build/"$@"
+  docker run --cpus=2 --memory=4g --rm -it --env-file ./.env -v "$(pwd)":/app growth-asymmetry-builder /app/build/"$@"
 }

@@ -24,3 +24,7 @@
 build/
 *.csv
 .env
+
+sec_data/
+*.db
+*.db-journal

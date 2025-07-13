@@ -74,7 +74,7 @@ private:
     }
 
 public:
-    SentimentAnalyser(const Config& cfg, MarketFeedProvider& provider) 
+    SentimentAnalyser(const Config& cfg, MarketFeedProvider& provider)
         : config(cfg), feed_provider(provider) {}
 
     std::map<std::string, double> analyse_sentiment(const std::string& ticker) {
@@ -98,14 +98,18 @@ public:
             std::vector<double> prices;
             if (!data.empty() && data.contains("results") && !data["results"].is_null()) {
                 for (const auto& day : data["results"]) {
-                    prices.push_back(day.value("c", 0.0));
+                    // --- ROBUSTNESS CHECK ---
+                    if (day.contains("c") && !day["c"].is_null()) {
+                        prices.push_back(day.value("c", 0.0));
+                    }
                 }
             } else {
+                std::cerr << "Warning: Could not retrieve sentiment data for " << ticker << ". Skipping." << std::endl;
                 return {};
             }
 
             if (prices.empty()) return {};
-            
+
             std::vector<double> returns;
             for(size_t i = 1; i < prices.size(); ++i) {
                 if (prices[i-1] > 0) {

@@ -15,7 +15,6 @@ public:
         : cash(initial_capital), data_handler(data_handler) {}
 
     void rebalance(const std::vector<Stock>& stocks, const std::vector<double>& new_weights) {
-        std::cout << "Rebalancing portfolio..." << std::endl;
         double total_value = get_total_value();
         for(size_t i = 0; i < stocks.size(); ++i) {
             double target_value = total_value * new_weights[i];
